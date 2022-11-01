@@ -37,9 +37,9 @@ def get_image_embedding(image_path, device):
     """
     with torch.no_grad():
         image = Image.open(image_path)
-        inputs = clip_processor(images=[image], return_tensors="pt", padding=True)
+        inputs = clip_processor(images=[image], return_tensors="pt", padding=True).to(device)
         outputs = clip_model.get_image_features(**inputs)
-        return outputs.unsqueeze(1).to(device)
+        return outputs.unsqueeze(1).float()
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
