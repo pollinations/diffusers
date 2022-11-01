@@ -262,6 +262,14 @@ class StableDiffusionImageEmbeddingPipeline(DiffusionPipeline):
                 f" {type(callback_steps)}."
             )
 
+
+        if isinstance(image_path, str):
+            batch_size = 1
+        elif isinstance(image_path, list):
+            batch_size = len(image_path)
+        else:
+            raise ValueError(f"`prompt` has to be of type `str` or `list` but is {type(image_path)}")
+
         # # get prompt text embeddings
         # text_inputs = self.tokenizer(
         #     prompt,
@@ -294,43 +302,53 @@ class StableDiffusionImageEmbeddingPipeline(DiffusionPipeline):
         # get unconditional embeddings for classifier free guidance
         if do_classifier_free_guidance:
             uncond_tokens: List[str]
-            if negative_prompt is None:
-                uncond_tokens = [""]
-            elif type(prompt) is not type(negative_prompt):
-                raise TypeError(
-                    f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
-                    f" {type(prompt)}."
-                )
-            elif isinstance(negative_prompt, str):
-                uncond_tokens = [negative_prompt]
-            elif batch_size != len(negative_prompt):
-                raise ValueError(
-                    f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
-                    f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
-                    " the batch size of `prompt`."
-                )
-            else:
-                uncond_tokens = negative_prompt
 
-            max_length = text_input_ids.shape[-1]
-            uncond_input = self.tokenizer(
-                uncond_tokens,
-                padding="max_length",
-                max_length=max_length,
-                truncation=True,
-                return_tensors="pt",
-            )
-            uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(self.device))[0]
+            # elif type(prompt) is not type(negative_prompt):
+            #     raise TypeError(
+            #         f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
+            #         f" {type(prompt)}."
+            #     )
+            # elif isinstance(negative_prompt, str):
+            #     uncond_tokens = [negative_prompt]
+            # elif batch_size != len(negative_prompt):
+            #     raise ValueError(
+            #         f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
+            #         f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
+            #         " the batch size of `prompt`."
+            #     )
+            # else:
+            #     uncond_tokens = negative_prompt
 
-            # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
-            seq_len = uncond_embeddings.shape[1]
-            uncond_embeddings = uncond_embeddings.repeat(batch_size, num_images_per_prompt, 1)
-            uncond_embeddings = uncond_embeddings.view(batch_size * num_images_per_prompt, seq_len, -1)
+            # max_length = text_input_ids.shape[-1]
+            # uncond_input = self.tokenizer(
+            #     uncond_tokens,
+            #     padding="max_length",
+            #     max_length=max_length,
+            #     truncation=True,
+            #     return_tensors="pt",
+            # )
+
+            # uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(self.device))[0]
+
+
+            # if do_classifier_free_guidance:
+            uncond_embeddings = torch.zeros_like(image_embeddings)
 
             # For classifier free guidance, we need to do two forward passes.
             # Here we concatenate the unconditional and text embeddings into a single batch
             # to avoid doing two forward passes
-            text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+            image_embeddings = torch.cat([uncond_embeddings, image_embeddings])
+
+
+            # # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
+            # seq_len = uncond_embeddings.shape[1]
+            # uncond_embeddings = uncond_embeddings.repeat(batch_size, num_images_per_prompt, 1)
+            # uncond_embeddings = uncond_embeddings.view(batch_size * num_images_per_prompt, seq_len, -1)
+
+            # # For classifier free guidance, we need to do two forward passes.
+            # # Here we concatenate the unconditional and text embeddings into a single batch
+            # # to avoid doing two forward passes
+            # text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
         # get the initial random noise unless the user supplied it
 
