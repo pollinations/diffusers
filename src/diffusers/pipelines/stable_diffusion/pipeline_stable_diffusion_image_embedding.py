@@ -39,7 +39,7 @@ def get_image_embedding(image_path):
         image = Image.open(image_path)
         inputs = clip_processor(images=[image], return_tensors="pt", padding=True)
         outputs = clip_model.get_image_features(**inputs)
-        return outputs.cpu().numpy()
+        return outputs.unsqueeze(1)
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
