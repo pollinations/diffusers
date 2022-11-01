@@ -287,7 +287,7 @@ class StableDiffusionImageEmbeddingPipeline(DiffusionPipeline):
         #     )
         #     text_input_ids = text_input_ids[:, : self.tokenizer.model_max_length]
 
-        image_embeddings = self.model.encode_image(image_path)
+        image_embeddings = get_image_embedding(image_path)
         text_embeddings = image_embeddings
 
         # duplicate text embeddings for each generation per prompt, using mps friendly method
