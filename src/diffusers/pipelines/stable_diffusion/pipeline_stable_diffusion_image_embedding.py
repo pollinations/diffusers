@@ -27,7 +27,7 @@ clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
 clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
 
 
-def get_image_embedding(image_path):
+def get_image_embedding(image_path, device):
     """
     Get the CLIP embedding of an image.
     Args:
@@ -37,7 +37,7 @@ def get_image_embedding(image_path):
     """
     with torch.no_grad():
         image = Image.open(image_path)
-        inputs = clip_processor(images=[image], return_tensors="pt", padding=True)
+        inputs = clip_processor(images=[image], return_tensors="pt", padding=True).half().to(device)
         outputs = clip_model.get_image_features(**inputs)
         return outputs.unsqueeze(1)
 
@@ -287,7 +287,7 @@ class StableDiffusionImageEmbeddingPipeline(DiffusionPipeline):
         #     )
         #     text_input_ids = text_input_ids[:, : self.tokenizer.model_max_length]
 
-        image_embeddings = get_image_embedding(image_path)
+        image_embeddings = get_image_embedding(image_path, self.device)
         text_embeddings = image_embeddings
 
         # duplicate text embeddings for each generation per prompt, using mps friendly method
